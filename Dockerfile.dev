@@ -1,0 +1,35 @@
+FROM node:16.13-bullseye
+
+ENV REGION "ap-northeast-1"
+
+RUN npm install --global zx
+
+#Install aws cli v2
+WORKDIR /var/tmp
+RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && \
+    unzip awscliv2.zip && \
+    ./aws/install && \
+    rm -rf ./aws && \
+    rm -f ./awscliv2.zip
+
+# Install ssm agent
+WORKDIR /var/tmp
+RUN wget https://s3.${REGION}.amazonaws.com/amazon-ssm-${REGION}/latest/debian_amd64/amazon-ssm-agent.deb && \
+dpkg -i amazon-ssm-agent.deb && \
+rm amazon-ssm-agent.deb
+RUN apt-get update -y && \
+    apt-get install -y sudo
+RUN useradd -m ssm-user && \
+    echo "ssm-user ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+WORKDIR /opt/app
+
+COPY package*.json ./
+RUN npm ci
+
+COPY . ./
+RUN npm run compile
+
+ENTRYPOINT ["zx", "./docker-entrypoint.ts"]
+
+CMD ["npm", "start"]
