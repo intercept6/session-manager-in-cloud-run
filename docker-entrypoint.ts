@@ -22,7 +22,6 @@ async function main() {
 
   $`nohup amazon-ssm-agent > /dev/null &`;
 
-  // const proc = $`npm start`;
   const proc = $`${command[0]} ${command.slice(1)}`;
   // FIXME: https://github.com/google/zx/issues/249#issuecomment-971710172
   proc.catch(() => {});
@@ -54,11 +53,14 @@ async function activate(): Promise<ActivateParams> {
     Description: 'cloud-run-dev',
     IamRole: 'service-role/AmazonEC2RunCommandRoleForManagedInstances',
   });
-  const {ActivationId, ActivationCode} = await ssmClient.send(command);
+  const {ActivationId: activateId, ActivationCode: activateCode} =
+    await ssmClient.send(command);
+
+  console.log(`create activate id: ${activateId}`);
 
   return {
-    activateId: ActivationId,
-    activateCode: ActivationCode,
+    activateId,
+    activateCode,
   };
 }
 
@@ -79,7 +81,11 @@ async function register({
     );
   }
 
-  return {instanceId: found[0]};
+  const instanceId = found[0];
+
+  console.log(`register instance id: ${instanceId}`);
+
+  return {instanceId};
 }
 
 type TerminateParams = {activateId: string; instanceId: string};
@@ -94,6 +100,8 @@ async function deleteActivate({
 }): Promise<void> {
   const command = new DeleteActivationCommand({ActivationId: activateId});
   await ssmClient.send(command).catch(console.error);
+
+  console.log(`delete activate id: ${activateId}`);
 }
 
 async function deregister({instanceId}: {instanceId: string}): Promise<void> {
@@ -101,6 +109,8 @@ async function deregister({instanceId}: {instanceId: string}): Promise<void> {
     InstanceId: instanceId,
   });
   await ssmClient.send(command).catch(console.error);
+
+  console.log(`deregister instance id: ${instanceId}`);
 }
 
 (async () => {
