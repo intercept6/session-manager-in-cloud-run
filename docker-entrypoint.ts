@@ -17,7 +17,7 @@ async function main() {
   console.log('start docker entrypoint');
   const command = process.argv.slice(3);
 
-  const {activateId, activateCode} = await activate();
+  const {activateId, activateCode} = await createActivate();
   const {instanceId} = await register({activateId, activateCode});
 
   $`nohup amazon-ssm-agent > /dev/null &`;
@@ -47,7 +47,7 @@ async function main() {
 
 type ActivateParams = {activateId: string; activateCode: string};
 
-async function activate(): Promise<ActivateParams> {
+async function createActivate(): Promise<ActivateParams> {
   const command = new CreateActivationCommand({
     DefaultInstanceName: 'cloud-run-dev',
     Description: 'cloud-run-dev',
